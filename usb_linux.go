@@ -17,6 +17,7 @@ type usbDevice struct {
 	info Info
 
 	f *os.File
+	fd uintptr
 
 	epIn  int
 	epOut int
@@ -34,6 +35,7 @@ func (hid *usbDevice) Open() (err error) {
 	if hid.f, err = os.OpenFile(hid.path, os.O_RDWR, 0644); err != nil {
 		return
 	} else {
+		hid.fd = hid.f.Fd()
 		return hid.claim()
 	}
 }
@@ -56,7 +58,7 @@ func (hid *usbDevice) ioctl(n uint32, arg interface{}) (int, error) {
 		return -1, err
 	}
 	r, _, err := syscall.Syscall6(syscall.SYS_IOCTL,
-		uintptr(hid.f.Fd()), uintptr(n),
+		hid.fd, uintptr(n),
 		uintptr(unsafe.Pointer(&(b.Bytes()[0]))), 0, 0, 0)
 	return int(r), err
 }
@@ -176,6 +178,44 @@ func (hid *usbDevice) SetReport(report int, data []byte) error {
 	return err
 }
 
+func (hid *usbDevice) SetEndpoint(ep int) {
+	hid.epIn = 0x80 + ep
+	hid.epOut = ep
+}
+
+func (hid *usbDevice) SetEpIn(ep int) {
+	hid.epIn = ep
+}
+
+func (hid *usbDevice) SetEpOut(ep int) {
+	hid.epOut = ep
+}
+
+func (hid *usbDevice) SetInfo(info Info) {
+	hid.info = info
+}
+
+func (hid *usbDevice) SetFD(fd uintptr) {
+	hid.fd = fd
+}
+
+func (hid *usbDevice) SetPacketSize(ps uint16) {
+	hid.inputPacketSize = ps
+	hid.outputPacketSize = ps
+}
+
+func (hid *usbDevice) SetInputPS(ps uint16) {
+	hid.inputPacketSize = ps
+}
+
+func (hid *usbDevice) SetOutputPS(ps uint16) {
+	hid.outputPacketSize = ps
+}
+
+func (hid *usbDevice) SetPath(path string) {
+	hid.path = path
+}
+
 //
 // Enumeration
 //
@@ -256,9 +296,11 @@ func walker(path string, cb func(Device)) error {
 							}
 							if e.Address > 0x80 && device.epIn == 0 {
 								device.epIn = int(e.Address)
+								device.epIn = 129
 								device.inputPacketSize = e.MaxPacketSize
 							} else if e.Address < 0x80 && device.epOut == 0 {
 								device.epOut = int(e.Address)
+								device.epOut = 1
 								device.outputPacketSize = e.MaxPacketSize
 							}
 						}
