@@ -35,9 +35,8 @@ func (hid *usbDevice) Open() (err error) {
 	if hid.f, err = os.OpenFile(hid.path, os.O_RDWR, 0644); err != nil {
 		return
 	} else {
-		//hid.fd = hid.f.Fd()
-		//return hid.claim()
-		return nil
+		hid.fd = hid.f.Fd()
+		return hid.claim()
 	}
 }
 
@@ -59,7 +58,7 @@ func (hid *usbDevice) ioctl(n uint32, arg interface{}) (int, error) {
 		return -1, err
 	}
 	r, _, err := syscall.Syscall6(syscall.SYS_IOCTL,
-		uintptr(hid.f.Fd()), uintptr(n),
+		hid.fd, uintptr(n),
 		uintptr(unsafe.Pointer(&(b.Bytes()[0]))), 0, 0, 0)
 	return int(r), err
 }
@@ -215,6 +214,10 @@ func (hid *usbDevice) SetOutputPS(ps uint16) {
 
 func (hid *usbDevice) SetPath(path string) {
 	hid.path = path
+}
+
+func (hid *usbDevice) GetEndpoints() (int, int) {
+	return hid.epIn, hid.epOut
 }
 
 //
