@@ -11,12 +11,13 @@ import (
 	"syscall"
 	"time"
 	"unsafe"
+	"fmt"
 )
 
 type usbDevice struct {
 	info Info
 
-	f *os.File
+	f  *os.File
 	fd uintptr
 
 	epIn  int
@@ -32,12 +33,13 @@ func (hid *usbDevice) Open() (err error) {
 	if hid.f != nil {
 		return errors.New("device is already opened")
 	}
-	if hid.f, err = os.OpenFile(hid.path, os.O_RDWR, 0644); err != nil {
+	/*if hid.f, err = os.OpenFile(hid.path, os.O_RDWR, 0644); err != nil {
 		return
-	} else {
-		hid.fd = hid.f.Fd()
-		return hid.claim()
-	}
+	} else { */
+	//hid.fd = hid.f.Fd()
+	return hid.claim()
+	//return
+	//}
 }
 
 func (hid *usbDevice) Close() {
@@ -53,6 +55,7 @@ func (hid *usbDevice) Info() Info {
 }
 
 func (hid *usbDevice) ioctl(n uint32, arg interface{}) (int, error) {
+	fmt.Println("IOCTL", hid.fd)
 	b := new(bytes.Buffer)
 	if err := binary.Write(b, binary.LittleEndian, arg); err != nil {
 		return -1, err
@@ -218,6 +221,11 @@ func (hid *usbDevice) SetPath(path string) {
 
 func (hid *usbDevice) GetEndpoints() (int, int) {
 	return hid.epIn, hid.epOut
+}
+
+func GetUsbDevice() usbDevice {
+	var device usbDevice
+	return device
 }
 
 //
