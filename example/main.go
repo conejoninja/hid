@@ -14,7 +14,7 @@ import (
 
 func shell(device hid.Device) {
 	if err := device.Open(); err != nil {
-		log.Println("Open error: ", err)
+		log.Println("Open (shell) error: ", err)
 		return
 	}
 	defer device.Close()
