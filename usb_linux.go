@@ -31,13 +31,7 @@ func (hid *usbDevice) Open() (err error) {
 	if hid.f != nil {
 		return errors.New("device is already opened")
 	}
-	/*if hid.f, err = os.OpenFile(hid.path, os.O_RDWR, 0644); err != nil {
-		return
-	} else { */
-	//hid.fd = hid.f.Fd()
 	return hid.claim()
-	//return
-	//}
 }
 
 func (hid *usbDevice) Close() {
@@ -52,9 +46,24 @@ func (hid *usbDevice) Info() Info {
 	return hid.info
 }
 
+// checkFD checks if hid.fd is initialized and initializes it if required
+func (hid *usbDevice) checkFD() (err error) {
+	if hid.fd != 0 {
+		return
+	}
+	if hid.f, err = os.OpenFile(hid.path, os.O_RDWR, 0644); err != nil {
+		return
+	}
+	hid.fd = hid.f.Fd()
+	return
+}
+
 func (hid *usbDevice) ioctl(n uint32, arg interface{}) (int, error) {
 	b := new(bytes.Buffer)
 	if err := binary.Write(b, binary.LittleEndian, arg); err != nil {
+		return -1, err
+	}
+	if err := hid.checkFD(); err != nil {
 		return -1, err
 	}
 	r, _, err := syscall.Syscall6(syscall.SYS_IOCTL,
